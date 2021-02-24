@@ -2,33 +2,46 @@ from enum import Enum
 # from string import ascii_uppercase
 from termcolor import colored
 
-# N_COLS = 10
-# N_ROWS = 7
+
+def blue2red(position):
+    max_row = 6
+    return max_row - position[0], position[1]
+
+
+BLUE_STARTING_POSITIONS = [(2, 1),
+                           (2, 3),
+                           (2, 5),
+                           (2, 7),
+                           (2, 9),
+                           (1, 2),
+                           (1, 4),
+                           (1, 6),
+                           (0, 3),
+                           (0, 5)
+                           ]
+
+RED_STARTING_POSITIONS = [blue2red(position) for position in BLUE_STARTING_POSITIONS]
+
+BLUE_FLAG = (0, 4)
+
+
+BLUE_PRISON = [(0, 9),
+               (0, 8),
+               (0, 7),
+               (1, 9),
+               (1, 8),
+               (1, 7)
+               ]
+
+
+RED_PRISON = [blue2red(position) for position in BLUE_PRISON]
+
+
+RED_FLAG = blue2red(BLUE_FLAG)
 
 
 def clear():
     pass
-
-
-def space():
-    return ''' '''
-
-
-# def print_board():
-#     clear()
-#     header = ascii_uppercase[0:N_COLS]
-#     print('     ' + '   '.join(header))
-#     print('   ╔══' + '═╦══' * (N_COLS - 1) + '═╗')
-#     for r in range(0, N_ROWS):
-#         entries = [str(space()) for _ in (range(N_COLS))]
-#         if r < 10:
-#             spacing = ' '
-#         else:
-#             spacing = ''
-#         print(spacing + str(r), '║', ' ║ '.join(entries), '║')
-#         if not r == N_ROWS - 1:
-#             print('   ╠══' + '═╬══' * (N_COLS - 1) + '═╣')
-#     print('   ╚══' + '═╩══' * (N_COLS - 1) + '═╝')
 
 
 class Board:
@@ -36,36 +49,65 @@ class Board:
     n_cols = 10
 
     def __init__(self):
-        self.red_team = Team('red', 10)
-        self.blue_team = Team('blue', 10)
+        self.red_team = Team('red', 10, RED_STARTING_POSITIONS, RED_PRISON, RED_FLAG)
+        self.blue_team = Team('blue', 10, BLUE_STARTING_POSITIONS, BLUE_PRISON, BLUE_FLAG)
 
-    def print(self):
-        printable = [([' '] * self.n_cols).copy() for _ in range(self.n_rows)]
-        printable[3] = ['-'] * self.n_cols
+    def draw_blank(self):
+        return [([' '] * self.n_cols).copy() for _ in range(self.n_rows)]
+
+    def add_divider(self, grid):
+        grid[3] = ['-'] * self.n_cols
+
+    def draw_players(self, grid):
         for team in [self.red_team, self.blue_team]:
             for player in team.players:
-                player.print(printable)
+                player.draw(grid)
+
+    def draw_prisons(self, grid):
+        for team in [self.red_team, self.blue_team]:
+            team.draw_prison(grid)
+
+    def draw_flags(self, grid):
+        for team in [self.red_team, self.blue_team]:
+            team.draw_flag(grid)
+
+    def draw(self):
+        grid = self.draw_blank()
+        self.add_divider(grid)
+        self.draw_players(grid)
+        self.draw_prisons(grid)
+        self.draw_flags(grid)
+        return grid
+
+    def print(self):
         print('╔═══' + '══' * (self.n_cols - 2) + '══╗')
-        for row in printable:
+        for row in self.draw():
             string = ' '.join(row)
             print('║ ' + string + ' ║')
         print('╚═══' + '══' * (self.n_cols - 2) + '══╝')
 
 
 class Team:
-    def __init__(self, color, n_players):
+    def __init__(self, color, n_players, starting_positions, prison, flag):
+        self.flag = flag
         self.color = color
-        if color == 'red':
-            row = 1
-        else:
-            row = 0
-        self.players = [Player(i, color, row, i) for i in range(n_players)]
+        self.prison = prison
+        self.players = [Player(i, color, starting_positions[i]) for i in range(n_players)]
+
+    def draw_prison(self, grid):
+        for position in self.prison:
+            grid[position[0]][position[1]] = colored(grid[position[0]][position[0]], on_color='on_' + self.color)
+
+    def draw_flag(self, grid):
+        position = self.flag
+        if not grid[position[0]][position[1]] == self.players:
+            grid[position[0]][position[1]] = colored('#', self.color)
 
 
 class Player:
-    def __init__(self, number, color, row, column):
-        self.row = row
-        self.column = column
+    def __init__(self, number, color, position):
+        self.row = position[0]
+        self.column = position[1]
         self.number = number
         self.color = color
 
@@ -79,10 +121,8 @@ class Player:
         elif direction == Direction.RIGHT:
             self.column += 1
 
-    def print(self, board):
-        # row = list(board[self.row])
+    def draw(self, board):
         board[self.row][self.column] = colored(str(self.number), self.color)
-        # board[self.row] = ''.join(row)
 
 
 class Direction(Enum):
@@ -114,25 +154,25 @@ def get_move(gamer, gamer_1, gamer_2):
         invalid = True
     if invalid:
         get_move(gamer, gamer_1, gamer_2)
-    else:
-        go(gamer_1, gamer_2, move)
+    # else:
+        # go(gamer_1, gamer_2, move)
 
 
 def main():
-    gamer_1 = input('-> What is your name player 1')
-    gamer_2 = input('-> what is your name player 2')
+    # gamer_1 = input('-> What is your name player 1')
+    # gamer_2 = input('-> what is your name player 2')
     board = Board()
     board.print()
 
 
-def go(gamer_1, gamer_2, move):
-    go_decider = gamer_1
-    if go_decider == gamer_1:
-        go_decider = gamer_2
-    elif go_decider == gamer_2:
-        go_decider = gamer_1
-    else:
-        return go(gamer_1, gamer_2, move)
+# def go(gamer_1, gamer_2, move):
+#     go_decider = gamer_1
+#     if go_decider == gamer_1:
+#         go_decider = gamer_2
+#     elif go_decider == gamer_2:
+#         go_decider = gamer_1
+#     else:
+#         return go(gamer_1, gamer_2, move)
 
 
 if __name__ == '__main__':
