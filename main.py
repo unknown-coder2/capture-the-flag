@@ -1,5 +1,4 @@
 from enum import Enum
-# from string import ascii_uppercase
 from termcolor import colored
 
 
@@ -24,6 +23,7 @@ RED_STARTING_POSITIONS = [blue2red(position) for position in BLUE_STARTING_POSIT
 
 BLUE_FLAG = (0, 4)
 
+RED_FLAG = blue2red(BLUE_FLAG)
 
 BLUE_PRISON = [(0, 9),
                (0, 8),
@@ -37,9 +37,6 @@ BLUE_PRISON = [(0, 9),
 RED_PRISON = [blue2red(position) for position in BLUE_PRISON]
 
 
-RED_FLAG = blue2red(BLUE_FLAG)
-
-
 def clear():
     pass
 
@@ -49,8 +46,28 @@ class Board:
     n_cols = 10
 
     def __init__(self):
-        self.red_team = Team('red', 10, RED_STARTING_POSITIONS, RED_PRISON, RED_FLAG)
-        self.blue_team = Team('blue', 10, BLUE_STARTING_POSITIONS, BLUE_PRISON, BLUE_FLAG)
+        blue_name = input(colored('-> Blue Player: What is your name?', 'blue'))
+        red_name = input(colored('-> Red player: What is your name?', 'red'))
+
+        self.n_invalid_moves = 0
+        self.blue_team = Team('blue', 10, BLUE_STARTING_POSITIONS, BLUE_PRISON, BLUE_FLAG, blue_name)
+        self.red_team = Team('red', 10, RED_STARTING_POSITIONS, RED_PRISON, RED_FLAG, red_name)
+
+    def get_move(self, team):
+        move = input(colored(team.gamer_name + ' it is your turn \n make a move:', team.color))
+        try:
+            player, direction = move
+            player = int(player)
+            direction = Direction(direction.lower())
+            self.n_invalid_moves = 0
+        except ValueError:
+            self.n_invalid_moves += 1
+            if self.n_invalid_moves == 10:
+                print(colored('\n Too many invalid moves. Quiting...', team.color))
+                quit()
+            print(colored('That move is not valid, try again.', team.color))
+            return self.get_move(team)
+        return player, direction
 
     def draw_blank(self):
         return [([' '] * self.n_cols).copy() for _ in range(self.n_rows)]
@@ -86,13 +103,23 @@ class Board:
             print('║ ' + string + ' ║')
         print('╚═══' + '══' * (self.n_cols - 2) + '══╝')
 
+    def play_game(self):
+        while True:
+            for team in [self.blue_team, self.red_team]:
+                self.print()
+                player_number, direction = self.get_move(team)
+                player = team.players[player_number]
+                player.move(direction, player)
+
 
 class Team:
-    def __init__(self, color, n_players, starting_positions, prison, flag):
+
+    def __init__(self, color, n_players, starting_positions, prison, flag, name):
         self.flag = flag
         self.color = color
         self.prison = prison
         self.players = [Player(i, color, starting_positions[i]) for i in range(n_players)]
+        self.gamer_name = name
 
     def draw_prison(self, grid):
         for position in self.prison:
@@ -105,74 +132,57 @@ class Team:
 
 
 class Player:
+
     def __init__(self, number, color, position):
+
         self.row = position[0]
         self.column = position[1]
         self.number = number
         self.color = color
+        self.in_prison = False
 
-    def move(self, direction):
-        if direction == Direction.UP:
-            self.row -= 1
-        elif direction == Direction.DOWN:
-            self.row += 1
-        elif direction == Direction.LEFT:
-            self.column -= 1
-        elif direction == Direction.RIGHT:
-            self.column += 1
+    def move(self, direction, board):
+        if not self.in_prison:
+            if direction == Direction.UP:
+                self.row -= 1
+            elif direction == Direction.DOWN:
+                self.row += 1
+            elif direction == Direction.LEFT:
+                self.column -= 1
+            elif direction == Direction.RIGHT:
+                self.column += 1
+        elif self.in_prison:
+            print(colored('That move is not valid, try again.', self.color))
+            board.n_invalid_moves += 1
+            board.get_move()
 
     def draw(self, board):
         board[self.row][self.column] = colored(str(self.number), self.color)
 
+    def capture(self):
+        if self.color == 'blue':
+            self.row = 0
+            self.column = 9
+        elif self.color == 'red':
+            self.row = 6
+            self.column = 9
+        self.in_prison = True
+
 
 class Direction(Enum):
-    UP = 0
-    DOWN = 1
-    LEFT = 2
-    RIGHT = 3
+    UP = 'u'
+    DOWN = 'd'
+    LEFT = 'l'
+    RIGHT = 'r'
 
 
 class Gamer:
     pass
 
 
-def get_move(gamer, gamer_1, gamer_2):
-    invalid = False
-    n = ['']
-    c = ['']
-    move_1 = move_2 = -1
-    if gamer == 'gamer_1':
-        move_1 = input(gamer + ' it is your turn \n make a move:')
-    elif gamer == 'gamer_2':
-        move_2 = input(gamer + ' it is your turn \n make a move:')
-    move = move_2 or move_1
-    if not move < 2 or move > 2:
-        invalid = True
-    elif not move[1] == n:
-        invalid = True
-    elif not move[0] == c:
-        invalid = True
-    if invalid:
-        get_move(gamer, gamer_1, gamer_2)
-    # else:
-        # go(gamer_1, gamer_2, move)
-
-
 def main():
-    # gamer_1 = input('-> What is your name player 1')
-    # gamer_2 = input('-> what is your name player 2')
     board = Board()
-    board.print()
-
-
-# def go(gamer_1, gamer_2, move):
-#     go_decider = gamer_1
-#     if go_decider == gamer_1:
-#         go_decider = gamer_2
-#     elif go_decider == gamer_2:
-#         go_decider = gamer_1
-#     else:
-#         return go(gamer_1, gamer_2, move)
+    board.play_game()
 
 
 if __name__ == '__main__':
