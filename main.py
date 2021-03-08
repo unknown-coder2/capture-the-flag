@@ -189,7 +189,11 @@ class Player:
             board.get_move()
 
     def draw(self, board):
-        board[self.row][self.column] = colored(str(self.number), self.color)
+        if self.in_prison:
+            color = 'grey'
+        else:
+            color = self.color
+        board[self.row][self.column] = colored(str(self.number), color)
 
     def send_to_prison(self, capturing_team):
         position = capturing_team.prison[0]
