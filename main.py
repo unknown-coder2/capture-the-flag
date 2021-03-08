@@ -1,6 +1,8 @@
 from enum import Enum
 from termcolor import colored
 
+from termcolor_extensions import get_color
+
 
 def blue2red(position):
     max_row = 6
@@ -52,6 +54,14 @@ class Board:
         self.n_invalid_moves = 0
         self.blue_team = Team('blue', 10, BLUE_STARTING_POSITIONS, BLUE_PRISON, BLUE_FLAG, blue_name)
         self.red_team = Team('red', 10, RED_STARTING_POSITIONS, RED_PRISON, RED_FLAG, red_name)
+
+    def color2team(self, color):
+        if color == 'red':
+            return self.red_team
+        elif color == 'blue':
+            return self.blue_team
+        else:
+            raise ValueError
 
     def get_move(self, team):
         move = input(colored(team.gamer_name + ' it is your turn \n make a move:', team.color))
@@ -107,9 +117,27 @@ class Board:
         while True:
             for team in [self.blue_team, self.red_team]:
                 self.print()
+                current_grid = self.draw()
                 player_number, direction = self.get_move(team)
                 player = team.players[player_number]
                 player.move(direction, player)
+                target_square, target_color = self.character_at_position(current_grid, player.position)
+                try:
+                    target_player = int(target_square)
+                except ValueError:
+                    target_player = -1
+                if target_player >= 0:
+                    target_team = self.color2team(target_color)
+                    target_player = target_team.players[target_player]
+                    target_player.send_to_prison(team)
+
+    @staticmethod
+    def character_at_position(grid, position):
+        string = grid[position[0]][position[1]]
+        try:
+            return get_color(string)
+        except ValueError:
+            return string, None
 
 
 class Team:
@@ -123,7 +151,7 @@ class Team:
 
     def draw_prison(self, grid):
         for position in self.prison:
-            grid[position[0]][position[1]] = colored(grid[position[0]][position[0]], on_color='on_' + self.color)
+            grid[position[0]][position[1]] = colored(grid[position[0]][position[1]], on_color='on_' + self.color)
 
     def draw_flag(self, grid):
         position = self.flag
@@ -140,6 +168,10 @@ class Player:
         self.number = number
         self.color = color
         self.in_prison = False
+
+    @property
+    def position(self):
+        return self.row, self.column
 
     def move(self, direction, board):
         if not self.in_prison:
@@ -159,13 +191,10 @@ class Player:
     def draw(self, board):
         board[self.row][self.column] = colored(str(self.number), self.color)
 
-    def capture(self):
-        if self.color == 'blue':
-            self.row = 0
-            self.column = 9
-        elif self.color == 'red':
-            self.row = 6
-            self.column = 9
+    def send_to_prison(self, capturing_team):
+        position = capturing_team.prison[0]
+        self.row = position[0]
+        self.column = position[1]
         self.in_prison = True
 
 
