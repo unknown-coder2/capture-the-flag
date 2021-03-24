@@ -118,9 +118,16 @@ class Board:
             for team in [self.blue_team, self.red_team]:
                 self.print()
                 current_grid = self.draw()
-                player_number, direction = self.get_move(team)
-                player = team.players[player_number]
-                player.move(direction, player)
+                while True:
+                    try:
+                        player_number, direction = self.get_move(team)
+                        player = team.players[player_number]
+                        player.move(direction, current_grid)
+                        break
+                    except InvalidMoveError as err:
+                        print(colored('That move is not valid, try again.\n' + str(err), team.color))
+                        self.n_invalid_moves += 1
+
                 target_square, target_color = self.character_at_position(current_grid, player.position)
                 try:
                     target_player = int(target_square)
@@ -176,17 +183,23 @@ class Player:
     def move(self, direction, board):
         if not self.in_prison:
             if direction == Direction.UP:
+                if self.row == 0:
+                    raise InvalidMoveError('That move takes you outside the board')
                 self.row -= 1
             elif direction == Direction.DOWN:
+                if self.row == 6:
+                    raise InvalidMoveError('That move takes you outside the board')
                 self.row += 1
             elif direction == Direction.LEFT:
+                if self.column == 0:
+                    raise InvalidMoveError('That move takes you outside the board')
                 self.column -= 1
             elif direction == Direction.RIGHT:
+                if self.column == 9:
+                    raise InvalidMoveError('That move takes you outside the board')
                 self.column += 1
         elif self.in_prison:
-            print(colored('That move is not valid, try again.', self.color))
-            board.n_invalid_moves += 1
-            board.get_move()
+            raise InvalidMoveError('Player ' + str(self.number) + ' is in prison')
 
     def draw(self, board):
         if self.in_prison:
@@ -207,6 +220,10 @@ class Direction(Enum):
     DOWN = 'd'
     LEFT = 'l'
     RIGHT = 'r'
+
+
+class InvalidMoveError(Exception):
+    pass
 
 
 class Gamer:
