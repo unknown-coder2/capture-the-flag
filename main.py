@@ -20,11 +20,9 @@ BLUE_STARTING_POSITIONS = [(2, 1),
                            (0, 3),
                            (0, 5)
                            ]
-
 RED_STARTING_POSITIONS = [blue2red(position) for position in BLUE_STARTING_POSITIONS]
 
 BLUE_FLAG = (0, 4)
-
 RED_FLAG = blue2red(BLUE_FLAG)
 
 BLUE_PRISON = [(0, 9),
@@ -34,14 +32,12 @@ BLUE_PRISON = [(0, 9),
                (1, 8),
                (1, 7)
                ]
-
-
 RED_PRISON = [blue2red(position) for position in BLUE_PRISON]
 
 
 BLUE_ROWS = [2, 1, 0]
-
 RED_ROWS = blue2red(BLUE_ROWS)
+MID_ROW = 3
 
 
 def clear():
@@ -182,6 +178,17 @@ class Player:
         self.in_prison = False
 
     @property
+    def is_capturable(self):
+        if self.row == MID_ROW:
+            return False
+        if self.color == 'blue' and self.row in BLUE_ROWS:
+            return False
+        elif self.color == 'red' and self.row in RED_ROWS:
+            return False
+        else:
+            return True
+
+    @property
     def position(self):
         return self.row, self.column
 
@@ -214,16 +221,11 @@ class Player:
         board[self.row][self.column] = colored(str(self.number), color)
 
     def send_to_prison(self, capturing_team):
-        if not self.color == capturing_team.color:
-            if not self.row == 3:
-                if self.color == 'blue' and self.row in BLUE_ROWS:
-                    return
-                elif self.color == 'red' and self.row in RED_ROWS:
-                    return
-                position = capturing_team.prison[0]
-                self.row = position[0]
-                self.column = position[1]
-                self.in_prison = True
+        if self.is_capturable and self.color != capturing_team.color:
+            position = capturing_team.prison[0]
+            self.row = position[0]
+            self.column = position[1]
+            self.in_prison = True
 
 
 class Direction(Enum):
