@@ -39,6 +39,11 @@ BLUE_PRISON = [(0, 9),
 RED_PRISON = [blue2red(position) for position in BLUE_PRISON]
 
 
+BLUE_ROWS = [2, 1, 0]
+
+RED_ROWS = blue2red(BLUE_ROWS)
+
+
 def clear():
     pass
 
@@ -209,10 +214,16 @@ class Player:
         board[self.row][self.column] = colored(str(self.number), color)
 
     def send_to_prison(self, capturing_team):
-        position = capturing_team.prison[0]
-        self.row = position[0]
-        self.column = position[1]
-        self.in_prison = True
+        if not self.color == capturing_team.color:
+            if not self.row == 3:
+                if self.color == 'blue' and self.row in BLUE_ROWS:
+                    return
+                elif self.color == 'red' and self.row in RED_ROWS:
+                    return
+                position = capturing_team.prison[0]
+                self.row = position[0]
+                self.column = position[1]
+                self.in_prison = True
 
 
 class Direction(Enum):
