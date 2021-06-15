@@ -193,25 +193,39 @@ class Player:
         return self.row, self.column
 
     def move(self, direction, board):
+        target_row = self.row
+        target_col = self.column
         if not self.in_prison:
             if direction == Direction.UP:
                 if self.row == 0:
                     raise InvalidMoveError('That move takes you outside the board')
-                self.row -= 1
+                target_row -= 1
             elif direction == Direction.DOWN:
                 if self.row == 6:
                     raise InvalidMoveError('That move takes you outside the board')
-                self.row += 1
+                target_row += 1
             elif direction == Direction.LEFT:
                 if self.column == 0:
                     raise InvalidMoveError('That move takes you outside the board')
-                self.column -= 1
+                target_col -= 1
             elif direction == Direction.RIGHT:
                 if self.column == 9:
                     raise InvalidMoveError('That move takes you outside the board')
-                self.column += 1
+                target_col += 1
         elif self.in_prison:
             raise InvalidMoveError('Player ' + str(self.number) + ' is in prison')
+        target = (target_row, target_col)
+        if self.color == 'blue' and target in BLUE_PRISON:
+            raise InvalidMoveError('That move would take you into your prison')
+        if self.color == 'red' and target in RED_PRISON:
+            raise InvalidMoveError('That move would take you into your prison')
+        target_char, target_color = Board.character_at_position(board, target)
+        if target_color == self.color:
+            if target_char == '#':
+                raise InvalidMoveError('That move would take you onto your flag')
+            else:
+                raise InvalidMoveError('That move would take you onto another player')
+        self.row, self.column = target
 
     def draw(self, board):
         if self.in_prison:
