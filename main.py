@@ -154,8 +154,8 @@ class Board:
 
 class Team:
 
-    def __init__(self, color, n_players, starting_positions, prison, flag, name):
-        self.flag = flag
+    def __init__(self, color, n_players, starting_positions, prison, flag_position, name):
+        self.flag = Flag(flag_position, color)
         self.color = color
         self.prison = prison
         self.players = [Player(i, color, starting_positions[i]) for i in range(n_players)]
@@ -166,7 +166,9 @@ class Team:
             grid[position[0]][position[1]] = colored(grid[position[0]][position[1]], on_color='on_' + self.color)
 
     def draw_flag(self, grid):
-        position = self.flag
+        row = self.flag.row
+        column = self.flag.column
+        position = (row, column)
         if not grid[position[0]][position[1]] == self.players:
             grid[position[0]][position[1]] = colored('#', self.color)
 
@@ -183,6 +185,7 @@ class Player:
         self.column = position[1]
         self.number = number
         self.color = color
+        self.holding_flag = None
         self.in_prison = False
 
     def release(self, grid, team):
@@ -204,6 +207,9 @@ class Player:
             self.column = starting_position[1]
             self.color = team.color
             self.in_prison = False
+
+    def pick_up_flag(self, flag):
+        self.holding_flag = flag
 
     @property
     def is_capturable(self):
@@ -253,7 +259,12 @@ class Player:
                 raise InvalidMoveError('That move would take you onto your flag')
             else:
                 raise InvalidMoveError('That move would take you onto another player')
+        else:
+            if target_char == '#':
+                self.pick_up_flag(flag)
         self.row, self.column = target
+        if self.holding_flag is not None:
+            self.holding_flag.update_position(target)
 
     def draw(self, board):
         if self.in_prison:
@@ -283,6 +294,18 @@ class InvalidMoveError(Exception):
 
 class Gamer:
     pass
+
+
+class Flag:
+    def __init__(self, position, color):
+        self.is_movable_by_team = False
+        self.row = position[0]
+        self.column = position[1]
+        self.color = color
+
+    def update_position(self, new_position):
+        self.row = new_position[0]
+        self.column = new_position[1]
 
 
 def main():
