@@ -4,9 +4,13 @@ from termcolor import colored
 from termcolor_extensions import get_color
 
 
+MAX_ROW = 6
+
+MAX_COL = 9
+
+
 def blue2red(position):
-    max_row = 6
-    return max_row - position[0], position[1]
+    return MAX_ROW - position[0], position[1]
 
 
 BLUE_STARTING_POSITIONS = [(2, 1),
@@ -45,8 +49,8 @@ def clear():
 
 
 class Board:
-    n_rows = 7
-    n_cols = 10
+    n_rows = MAX_ROW + 1
+    n_cols = MAX_COL + 1
 
     def __init__(self):
         blue_name = input(colored('-> Blue Player: What is your name?', 'blue'))
@@ -138,14 +142,14 @@ class Board:
                     target_team = self.color2team(target_color)
                     target_player = target_team.players[target_player]
                     target_player.send_to_prison(team)
+                if ((player.color == 'red' and player.position in BLUE_PRISON)
+                        or (player.color == 'blue' and player.position in RED_PRISON)):
+                    team.release_all(current_grid)
 
     @staticmethod
     def character_at_position(grid, position):
         string = grid[position[0]][position[1]]
-        try:
-            return get_color(string)
-        except ValueError:
-            return string, None
+        return get_color(string)
 
 
 class Team:
@@ -166,6 +170,10 @@ class Team:
         if not grid[position[0]][position[1]] == self.players:
             grid[position[0]][position[1]] = colored('#', self.color)
 
+    def release_all(self, grid):
+        for player in self.players:
+            player.release(grid, self)
+
 
 class Player:
 
@@ -176,6 +184,26 @@ class Player:
         self.number = number
         self.color = color
         self.in_prison = False
+
+    def release(self, grid, team):
+        if self.in_prison:
+            if self.color == 'red':
+                starting_positions = RED_STARTING_POSITIONS
+            else:
+                starting_positions = BLUE_STARTING_POSITIONS
+            starting_position = starting_positions[self.number]
+            char, _ = Board.character_at_position(grid, starting_position)
+            char = Board.character_at_position(grid, starting_position)[0]
+            row, col = starting_position
+            while not Board.character_at_position(grid, (row, col))[0] == ' ':
+                row += 1
+                if row in (BLUE_PRISON + RED_PRISON) or self.column == MAX_ROW:
+                    row += 1
+                    col = 0
+            self.row = starting_position[0]
+            self.column = starting_position[1]
+            self.color = team.color
+            self.in_prison = False
 
     @property
     def is_capturable(self):
