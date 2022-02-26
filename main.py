@@ -85,36 +85,40 @@ class Board:
         return player, direction
 
     def draw_blank(self):
-        return [([' '] * self.n_cols).copy() for _ in range(self.n_rows)]
+        return [([BlankSquare()] * self.n_cols).copy() for _ in range(self.n_rows)]
 
-    def add_divider(self, grid):
-        grid[3] = ['-'] * self.n_cols
+    def freeze_divider(self, grid):
+        n_cols = self.n_cols
+        for i in range(n_cols):
+            grid[3][i] = DividerSquare()
 
-    def draw_players(self, grid):
+    def freeze_players(self, grid):
         for team in [self.red_team, self.blue_team]:
             for player in team.players:
-                player.draw(grid)
+                grid[player.row][player.column] = player
 
-    def draw_prisons(self, grid):
+    def freeze_prisons(self, grid):
         for team in [self.red_team, self.blue_team]:
-            team.draw_prison(grid)
+            team.freeze_prison(grid)
 
-    def draw_flags(self, grid):
+    def freeze_flags(self, grid):
         for team in [self.red_team, self.blue_team]:
-            team.draw_flag(grid)
+            flag = team.flag
+            grid[flag.row][flag.column] = flag
 
-    def draw(self):
+    def freeze(self):
         grid = self.draw_blank()
-        self.add_divider(grid)
-        self.draw_players(grid)
-        self.draw_prisons(grid)
-        self.draw_flags(grid)
+        self.freeze_divider(grid)
+        self.freeze_players(grid)
+        self.freeze_prisons(grid)
+        self.freeze_flags(grid)
         return grid
 
     def print(self):
         print('╔═══' + '══' * (self.n_cols - 2) + '══╗')
-        for row in self.draw():
-            string = ' '.join(row)
+        for row in self.freeze():
+            row_strings = [element.draw() for element in row]
+            string = ' '.join(row_strings)
             print('║ ' + string + ' ║')
         print('╚═══' + '══' * (self.n_cols - 2) + '══╝')
 
@@ -122,7 +126,7 @@ class Board:
         while True:
             for team in [self.blue_team, self.red_team]:
                 self.print()
-                current_grid = self.draw()
+                current_grid = self.freeze()
                 while True:
                     try:
                         player_number, direction = self.get_move(team)
@@ -161,16 +165,9 @@ class Team:
         self.players = [Player(i, color, starting_positions[i]) for i in range(n_players)]
         self.gamer_name = name
 
-    def draw_prison(self, grid):
+    def freeze_prison(self, grid):
         for position in self.prison:
-            grid[position[0]][position[1]] = colored(grid[position[0]][position[1]], on_color='on_' + self.color)
-
-    def draw_flag(self, grid):
-        row = self.flag.row
-        column = self.flag.column
-        position = (row, column)
-        if not grid[position[0]][position[1]] == self.players:
-            grid[position[0]][position[1]] = colored('#', self.color)
+            grid[position[0]][position[1]] = PrisonSquare(self.color)
 
     def release_all(self, grid):
         for player in self.players:
@@ -266,12 +263,12 @@ class Player:
         if self.holding_flag is not None:
             self.holding_flag.update_position(target)
 
-    def draw(self, board):
+    def draw(self):
         if self.in_prison:
             color = 'grey'
         else:
             color = self.color
-        board[self.row][self.column] = colored(str(self.number), color)
+        return colored(str(self.number), color)
 
     def send_to_prison(self, capturing_team):
         if self.is_capturable and self.color != capturing_team.color:
@@ -306,6 +303,34 @@ class Flag:
     def update_position(self, new_position):
         self.row = new_position[0]
         self.column = new_position[1]
+
+    def draw(self):
+        return colored('#', self.color)
+
+
+class PrisonSquare:
+    def __init__(self, color):
+        self.color = color
+
+    def draw(self):
+        char = ' '
+        return colored(char, on_color='on_' + self.color)
+
+
+class BlankSquare:
+
+    @staticmethod
+    def draw():
+        char = ' '
+        return char
+
+
+class DividerSquare:
+
+    @staticmethod
+    def draw():
+        char = '-'
+        return char
 
 
 def main():
