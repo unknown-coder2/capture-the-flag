@@ -1,7 +1,7 @@
 from enum import Enum
 from termcolor import colored
 
-from termcolor_extensions import get_color
+# from termcolor_extensions import get_color
 
 
 MAX_ROW = 6
@@ -42,10 +42,6 @@ RED_PRISON = [blue2red(position) for position in BLUE_PRISON]
 BLUE_ROWS = [2, 1, 0]
 RED_ROWS = blue2red(BLUE_ROWS)
 MID_ROW = 3
-
-
-def clear():
-    pass
 
 
 class Board:
@@ -109,9 +105,9 @@ class Board:
     def freeze(self):
         grid = self.draw_blank()
         self.freeze_divider(grid)
-        self.freeze_players(grid)
         self.freeze_prisons(grid)
         self.freeze_flags(grid)
+        self.freeze_players(grid)
         return grid
 
     def print(self):
@@ -136,24 +132,16 @@ class Board:
                     except InvalidMoveError as err:
                         print(colored('That move is not valid, try again.\n' + str(err), team.color))
                         self.n_invalid_moves += 1
-
-                target_square, target_color = self.character_at_position(current_grid, player.position)
-                try:
-                    target_player = int(target_square)
-                except ValueError:
-                    target_player = -1
-                if target_player >= 0:
-                    target_team = self.color2team(target_color)
-                    target_player = target_team.players[target_player]
-                    target_player.send_to_prison(team)
+                target_object = self.character_at_position(current_grid, player.position)
+                if isinstance(target_object, Player):
+                    target_object.send_to_prison(team)
                 if ((player.color == 'red' and player.position in BLUE_PRISON)
                         or (player.color == 'blue' and player.position in RED_PRISON)):
                     team.release_all(current_grid)
 
     @staticmethod
     def character_at_position(grid, position):
-        string = grid[position[0]][position[1]]
-        return get_color(string)
+        return grid[position[0]][position[1]]
 
 
 class Team:
@@ -192,17 +180,15 @@ class Player:
             else:
                 starting_positions = BLUE_STARTING_POSITIONS
             starting_position = starting_positions[self.number]
-            char, _ = Board.character_at_position(grid, starting_position)
-            char = Board.character_at_position(grid, starting_position)[0]
+
             row, col = starting_position
-            while not Board.character_at_position(grid, (row, col))[0] == ' ':
+            while not isinstance(grid[row][col], BlankSquare):
                 row += 1
                 if row in (BLUE_PRISON + RED_PRISON) or self.column == MAX_ROW:
                     row += 1
                     col = 0
             self.row = starting_position[0]
             self.column = starting_position[1]
-            self.color = team.color
             self.in_prison = False
 
     def pick_up_flag(self, flag):
@@ -246,19 +232,24 @@ class Player:
         elif self.in_prison:
             raise InvalidMoveError('Player ' + str(self.number) + ' is in prison')
         target = (target_row, target_col)
-        if self.color == 'blue' and target in BLUE_PRISON:
-            raise InvalidMoveError('That move would take you into your prison')
-        if self.color == 'red' and target in RED_PRISON:
-            raise InvalidMoveError('That move would take you into your prison')
-        target_char, target_color = Board.character_at_position(board, target)
-        if target_color == self.color:
-            if target_char == '#':
+        # if self.color == 'blue' and target in BLUE_PRISON:
+        #     raise InvalidMoveError('That move would take you into your prison')
+        # if self.color == 'red' and target in RED_PRISON:
+        #     raise InvalidMoveError('That move would take you into your prison')
+        target_object = Board.character_at_position(board, target)
+        if isinstance(target_object, PrisonSquare):
+            if target_object.color == self.color:
+                raise InvalidMoveError('That move would take you onto your prison')
+        elif isinstance(target_object, Flag):
+            if target_object.color == self.color:
                 raise InvalidMoveError('That move would take you onto your flag')
-            else:
+        elif isinstance(target_object, Player):
+            if target_object.color == self.color:
                 raise InvalidMoveError('That move would take you onto another player')
         else:
-            if target_char == '#':
-                self.pick_up_flag(flag)
+            if isinstance(target_object, Flag):
+                if not target_object.color == self.color:
+                    self.pick_up_flag(Flag)
         self.row, self.column = target
         if self.holding_flag is not None:
             self.holding_flag.update_position(target)
@@ -268,7 +259,14 @@ class Player:
             color = 'grey'
         else:
             color = self.color
-        return colored(str(self.number), color)
+
+        if self.position in RED_PRISON:
+            on_color = 'on_red'
+        elif self.position in BLUE_PRISON:
+            on_color = 'on_blue'
+        else:
+            on_color = None
+        return colored(str(self.number), color, on_color=on_color)
 
     def send_to_prison(self, capturing_team):
         if self.is_capturable and self.color != capturing_team.color:
