@@ -191,6 +191,9 @@ class Player:
             self.column = starting_position[1]
             self.in_prison = False
 
+    def drop_flag(self):
+        self.holding_flag = None
+
     def pick_up_flag(self, flag):
         self.holding_flag = flag
 
@@ -243,13 +246,11 @@ class Player:
         elif isinstance(target_object, Flag):
             if target_object.color == self.color:
                 raise InvalidMoveError('That move would take you onto your flag')
+            else:
+                self.pick_up_flag(target_object)
         elif isinstance(target_object, Player):
             if target_object.color == self.color:
                 raise InvalidMoveError('That move would take you onto another player')
-        else:
-            if isinstance(target_object, Flag):
-                if not target_object.color == self.color:
-                    self.pick_up_flag(Flag)
         self.row, self.column = target
         if self.holding_flag is not None:
             self.holding_flag.update_position(target)
@@ -264,6 +265,8 @@ class Player:
             on_color = 'on_red'
         elif self.position in BLUE_PRISON:
             on_color = 'on_blue'
+        elif self.holding_flag is not None:
+            on_color = 'on_white'
         else:
             on_color = None
         return colored(str(self.number), color, on_color=on_color)
@@ -274,6 +277,7 @@ class Player:
             self.row = position[0]
             self.column = position[1]
             self.in_prison = True
+            self.drop_flag()
 
 
 class Direction(Enum):
