@@ -118,8 +118,9 @@ class Board:
             print('║ ' + string + ' ║')
         print('╚═══' + '══' * (self.n_cols - 2) + '══╝')
 
-    def play_game(self):
-        while True:
+    def play_game(self, board):
+        game_finished = False
+        while not game_finished:
             for team in [self.blue_team, self.red_team]:
                 self.print()
                 current_grid = self.freeze()
@@ -135,9 +136,17 @@ class Board:
                 target_object = self.character_at_position(current_grid, player.position)
                 if isinstance(target_object, Player):
                     target_object.send_to_prison(team)
+                    player.send_to_prison(target_object.team(board))
+                elif isinstance(target_object, Flag):
+                    player.pick_up_flag(target_object)
                 if ((player.color == 'red' and player.position in BLUE_PRISON)
                         or (player.color == 'blue' and player.position in RED_PRISON)):
                     team.release_all(current_grid)
+                if player.holding_flag:
+                    if isinstance(target_object, DividerSquare):
+                        print(player.color, 'has won this game!!!')
+                        game_finished = True
+                        break
 
     @staticmethod
     def character_at_position(grid, position):
@@ -172,6 +181,11 @@ class Player:
         self.color = color
         self.holding_flag = None
         self.in_prison = False
+
+    @property
+    def team(self, board):
+        team = board.color2team(self.color)
+        return team
 
     def release(self, grid, team):
         if self.in_prison:
@@ -235,10 +249,6 @@ class Player:
         elif self.in_prison:
             raise InvalidMoveError('Player ' + str(self.number) + ' is in prison')
         target = (target_row, target_col)
-        # if self.color == 'blue' and target in BLUE_PRISON:
-        #     raise InvalidMoveError('That move would take you into your prison')
-        # if self.color == 'red' and target in RED_PRISON:
-        #     raise InvalidMoveError('That move would take you into your prison')
         target_object = Board.character_at_position(board, target)
         if isinstance(target_object, PrisonSquare):
             if target_object.color == self.color:
@@ -246,8 +256,6 @@ class Player:
         elif isinstance(target_object, Flag):
             if target_object.color == self.color:
                 raise InvalidMoveError('That move would take you onto your flag')
-            else:
-                self.pick_up_flag(target_object)
         elif isinstance(target_object, Player):
             if target_object.color == self.color:
                 raise InvalidMoveError('That move would take you onto another player')
@@ -309,6 +317,17 @@ class Flag:
     def draw(self):
         return colored('#', self.color)
 
+    def detect_win(self):
+        position = (self.row, self.column)
+        if self.color == 'blue':
+            if position in RED_STARTING_POSITIONS:
+                red_win = True
+                return red_win
+        if self.color == 'red':
+            if position in BLUE_STARTING_POSITIONS:
+                blue_win = True
+                return blue_win
+
 
 class PrisonSquare:
     def __init__(self, color):
@@ -337,7 +356,7 @@ class DividerSquare:
 
 def main():
     board = Board()
-    board.play_game()
+    board.play_game(board)
 
 
 if __name__ == '__main__':
