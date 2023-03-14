@@ -91,7 +91,11 @@ class Board:
     def freeze_players(self, grid):
         for team in [self.red_team, self.blue_team]:
             for player in team.players:
-                grid[player.row][player.column] = player
+                if isinstance(grid[player.row][player.column], PrisonSquare):
+                    prison_square = grid[player.row][player.column]
+                    grid[player.row][player.column] = OccupiedPrisonSquare(prison_square.color, player)
+                else:
+                    grid[player.row][player.column] = player
 
     def freeze_prisons(self, grid):
         for team in [self.red_team, self.blue_team]:
@@ -274,6 +278,8 @@ class Player:
         elif isinstance(target_object, Player):
             if target_object.color == self.color or target_row == 3:
                 raise InvalidMoveError('That move would take you onto another player')
+        elif isinstance(target_object, OccupiedPrisonSquare):
+            raise InvalidMoveError('That move would take you onto another player')
         self.row, self.column = target
         if self.holding_flag is not None:
             self.holding_flag.update_position(target)
@@ -284,11 +290,11 @@ class Player:
         else:
             color = self.color
 
-        if self.position in RED_PRISON:
-            on_color = 'on_red'
-        elif self.position in BLUE_PRISON:
-            on_color = 'on_blue'
-        elif self.holding_flag is not None:
+        # if self.position in RED_PRISON:
+        #     on_color = 'on_red'
+        # elif self.position in BLUE_PRISON:
+        #     on_color = 'on_blue'
+        if self.holding_flag is not None:
             on_color = 'on_white'
         else:
             on_color = None
@@ -353,6 +359,17 @@ class PrisonSquare:
         return colored(char, on_color='on_' + self.color)
 
 
+class OccupiedPrisonSquare(PrisonSquare):
+    def __init__(self, color, occupant):
+        super().__init__(color)
+        self.occupant = occupant
+
+    def draw(self):
+        char = self.occupant.draw()
+        return colored(char, on_color='on_' + self.color)
+
+
+
 class BlankSquare:
 
     @staticmethod
@@ -376,5 +393,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    #  todo
-    #   prison capture glich
