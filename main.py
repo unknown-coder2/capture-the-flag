@@ -139,12 +139,13 @@ class Board:
                     player.send_to_prison(target_object.team(board))
                 elif isinstance(target_object, Flag):
                     player.pick_up_flag(target_object)
-                if ((player.color == 'red' and player.position in BLUE_PRISON)
-                        or (player.color == 'blue' and player.position in RED_PRISON)):
+                if (not player.in_prison  # this can happen if player sends themself to prison
+                        and ((player.color == 'red' and player.position in BLUE_PRISON)
+                             or (player.color == 'blue' and player.position in RED_PRISON))):
                     team.release_all(current_grid)
                 if player.holding_flag:
                     if isinstance(target_object, DividerSquare):
-                        print(player.color, 'has won this game!!!')
+                        print(colored(player.color + ' has won this game!!!', player.color))
                         game_finished = True
                         break
 
@@ -182,10 +183,30 @@ class Player:
         self.holding_flag = None
         self.in_prison = False
 
-    @property
     def team(self, board):
         team = board.color2team(self.color)
         return team
+
+    def get_released_position(self, grid, row, col):
+        try_col_num = 0
+        while not isinstance(grid[row][col], BlankSquare):
+            if not col == 9:
+                col += 1
+            else:
+                col = 0
+            try_col_num = try_col_num + 1
+            if try_col_num == 9:
+                if row < 3:
+                    if row < 1 or row == 1:
+                        row = row + 1
+                    if row == 2:
+                        row = row - 1
+                if row > 3:
+                    if row < 5 or row == 5:
+                        row = row + 1
+                    if row == 6:
+                        row = row - 1
+        return row, col
 
     def release(self, grid, team):
         if self.in_prison:
@@ -193,16 +214,10 @@ class Player:
                 starting_positions = RED_STARTING_POSITIONS
             else:
                 starting_positions = BLUE_STARTING_POSITIONS
-            starting_position = starting_positions[self.number]
-
-            row, col = starting_position
-            while not isinstance(grid[row][col], BlankSquare):
-                row += 1
-                if row in (BLUE_PRISON + RED_PRISON) or self.column == MAX_ROW:
-                    row += 1
-                    col = 0
-            self.row = starting_position[0]
-            self.column = starting_position[1]
+            row, col = starting_positions[self.number]
+            row, col = self.get_released_position(grid, row, col)
+            self.row = row
+            self.column = col
             self.in_prison = False
 
     def drop_flag(self):
@@ -257,7 +272,7 @@ class Player:
             if target_object.color == self.color:
                 raise InvalidMoveError('That move would take you onto your flag')
         elif isinstance(target_object, Player):
-            if target_object.color == self.color:
+            if target_object.color == self.color or target_row == 3:
                 raise InvalidMoveError('That move would take you onto another player')
         self.row, self.column = target
         if self.holding_flag is not None:
@@ -281,11 +296,11 @@ class Player:
 
     def send_to_prison(self, capturing_team):
         if self.is_capturable and self.color != capturing_team.color:
+            self.drop_flag()
             position = capturing_team.prison[0]
             self.row = position[0]
             self.column = position[1]
             self.in_prison = True
-            self.drop_flag()
 
 
 class Direction(Enum):
@@ -361,3 +376,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+    #  todo fix duble on line
+    #   prison capture glich
+    #   chech release from prison
+    #   flag captur glich
