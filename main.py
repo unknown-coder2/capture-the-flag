@@ -40,7 +40,7 @@ RED_PRISON = [blue2red(position) for position in BLUE_PRISON]
 
 
 BLUE_ROWS = [2, 1, 0]
-RED_ROWS = blue2red(BLUE_ROWS)
+RED_ROWS = [4, 5, 6]
 MID_ROW = 3
 
 
@@ -376,7 +376,5 @@ def main():
 
 if __name__ == '__main__':
     main()
-    #  todo fix duble on line
+    #  todo
     #   prison capture glich
-    #   chech release from prison
-    #   flag captur glich
