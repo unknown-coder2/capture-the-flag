@@ -14,17 +14,18 @@ def blue2red(position):
 
 
 BLUE_STARTING_POSITIONS = [(2, 1),
-                           (2, 3),
+                           # (2, 3),
                            (2, 5),
-                           (2, 7),
+                           # (2, 7),
                            (2, 9),
                            (1, 2),
-                           (1, 4),
+                           # (1, 4),
                            (1, 6),
-                           (0, 3),
-                           (0, 5)
+                           # (0, 3),
+                           # (0, 5)
                            ]
 RED_STARTING_POSITIONS = [blue2red(position) for position in BLUE_STARTING_POSITIONS]
+N_PLAYERS = len(BLUE_STARTING_POSITIONS)
 
 BLUE_FLAG = (0, 4)
 RED_FLAG = blue2red(BLUE_FLAG)
@@ -53,8 +54,8 @@ class Board:
         red_name = input(colored('-> Red player: What is your name?', 'red'))
 
         self.n_invalid_moves = 0
-        self.blue_team = Team('blue', 10, BLUE_STARTING_POSITIONS, BLUE_PRISON, BLUE_FLAG, blue_name)
-        self.red_team = Team('red', 10, RED_STARTING_POSITIONS, RED_PRISON, RED_FLAG, red_name)
+        self.blue_team = Team('blue', N_PLAYERS, BLUE_STARTING_POSITIONS, BLUE_PRISON, BLUE_FLAG, blue_name)
+        self.red_team = Team('red', N_PLAYERS, RED_STARTING_POSITIONS, RED_PRISON, RED_FLAG, red_name)
 
     def color2team(self, color):
         if color == 'red':
@@ -289,11 +290,6 @@ class Player:
             color = 'grey'
         else:
             color = self.color
-
-        # if self.position in RED_PRISON:
-        #     on_color = 'on_red'
-        # elif self.position in BLUE_PRISON:
-        #     on_color = 'on_blue'
         if self.holding_flag is not None:
             on_color = 'on_white'
         else:
@@ -393,3 +389,8 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+# todo
+#  prison players on top of each other
+#  player capture in prison if holding flag
+#  make it possible to win with force capturable on flag incaptuable till moved
